@@ -80,25 +80,27 @@ _LOGGER = logging.getLogger(__name__)
 # additional properties: https://developers.home-assistant.io/docs/core/entity/climate/
 
 CONF_CLIMATES = "climates"
-CONF_ON_ACTION = "turn_on"
-CONF_OFF_ACTION = "turn_off"
 CONF_SET_HVAC_MODE_ACTION = "set_hvac_mode"
-#TODO: CONF_SPEED_LIST = "speeds"
-#TODO: CONF_SPEED_COUNT = "speed_count"
+CONF_HVAC_LIST = "hvac_modes"
 
 CLIMATE_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_FRIENDLY_NAME): cv.string,
         vol.Required(CONF_VALUE_TEMPLATE): cv.template,
         vol.Optional(CONF_AVAILABILITY_TEMPLATE): cv.template,
-        vol.Optional(CONF_ON_ACTION): cv.SCRIPT_SCHEMA,
-        vol.Optional(CONF_OFF_ACTION): cv.SCRIPT_SCHEMA,
         vol.Required(CONF_SET_HVAC_MODE_ACTION): cv.SCRIPT_SCHEMA,
-        #TODO: vol.Optional(CONF_SPEED_COUNT): vol.Coerce(int),
-        #TODO: vol.Optional(
-        #     CONF_SPEED_LIST,
-        #     default=[SPEED_OFF, SPEED_LOW, SPEED_MEDIUM, SPEED_HIGH],
-        # ): cv.ensure_list,
+        vol.Optional(
+            CONF_HVAC_LIST,
+            default=[
+                HVAC_MODE_OFF,
+                HVAC_MODE_HEAT,
+                HVAC_MODE_COOL,
+                HVAC_MODE_HEAT_COOL,
+                HVAC_MODE_AUTO,
+                HVAC_MODE_DRY,
+                HVAC_MODE_FAN_ONLY,
+            ],
+        ): cv.ensure_list,#TODO: is this right?
         vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
         vol.Optional(CONF_UNIQUE_ID): cv.string,
     }
@@ -115,16 +117,10 @@ async def _async_create_entities(hass, config):
 
     for device, device_config in config[CONF_CLIMATES].items():
         friendly_name = device_config.get(CONF_FRIENDLY_NAME, device)
-
         state_template = device_config[CONF_VALUE_TEMPLATE]
         availability_template = device_config.get(CONF_AVAILABILITY_TEMPLATE)
-
-        on_action = device_config.get(CONF_ON_ACTION)
-        off_action = device_config.get(CONF_OFF_ACTION)
         set_hvac_mode_action = device_config[CONF_SET_HVAC_MODE_ACTION]
-        
-        #TODO: speed_list = device_config[CONF_SPEED_LIST]
-        #TODO: speed_count = device_config.get(CONF_SPEED_COUNT)
+        hvac_list = device_config.get(CONF_HVAC_LIST)
         unique_id = device_config.get(CONF_UNIQUE_ID)
 
         climates.append(
@@ -134,11 +130,8 @@ async def _async_create_entities(hass, config):
                 friendly_name,
                 state_template,
                 availability_template,
-                on_action,
-                off_action,
                 set_hvac_mode_action,
-                #TODO: speed_count,
-                #TODO: speed_list,
+                hvac_list,
                 unique_id,
             )
         )
@@ -160,11 +153,8 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
         friendly_name,
         state_template,
         availability_template,
-        on_action,
-        off_action,
         set_hvac_mode_action,
-        #TODO: speed_count,
-        #TODO: speed_list,
+        hvac_list,
         unique_id,
     ):
         """Initialize the climate."""
@@ -179,49 +169,15 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
 
         domain = __name__.split(".")[-2]
 
-        self._on_script = None
-        if on_action:
-            self._on_script = Script(
-                hass, on_action, friendly_name, domain
-            )
-
-        self._off_script = None
-        if off_action:
-            self._off_script = Script(
-                hass, off_action, friendly_name, domain
-            )
-
         self._set_hvac_mode_script = Script(hass, set_hvac_mode_action, friendly_name, domain)
 
         self._state = None
 
         self._supported_features = 0
-        #TODO: if (
-        #     self._speed_template
-        #     or self._percentage_template
-        #     or self._preset_mode_template
-        # ):
-        #     self._supported_features |= SUPPORT_SET_SPEED
-        # if self._oscillating_template:
-        #     self._supported_features |= SUPPORT_OSCILLATE
-        # if self._direction_template:
-        #     self._supported_features |= SUPPORT_DIRECTION
 
-        self._hvac_list = [
-            HVAC_MODE_HEAT,
-            HVAC_MODE_COOL,
-            HVAC_MODE_HEAT_COOL,
-            HVAC_MODE_AUTO,
-            HVAC_MODE_DRY,
-            HVAC_MODE_FAN_ONLY,
-        ]
-        if (self._on_script or self._off_script)
-           self._hvac_list.append(HVAC_MODE_OFF) # this determines if turn on/off are available
+        self._hvac_list = hvac_list
 
         self._unique_id = unique_id
-
-        #TODO: self._speed_count = speed_count
-        #TODO: self._speed_list = speed_list
 
     @property
     def name(self):
