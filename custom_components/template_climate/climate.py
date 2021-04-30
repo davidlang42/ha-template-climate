@@ -87,8 +87,8 @@ CLIMATE_SCHEMA = vol.Schema(
         vol.Optional(CONF_FRIENDLY_NAME): cv.string,
         vol.Required(CONF_VALUE_TEMPLATE): cv.template,
         #TODO: vol.Optional(CONF_AVAILABILITY_TEMPLATE): cv.template,
-        vol.Required(CONF_ON_ACTION): cv.SCRIPT_SCHEMA,
-        vol.Required(CONF_OFF_ACTION): cv.SCRIPT_SCHEMA,
+        vol.Optional(CONF_ON_ACTION): cv.SCRIPT_SCHEMA,
+        vol.Optional(CONF_OFF_ACTION): cv.SCRIPT_SCHEMA,
         vol.Required(CONF_SET_HVAC_MODE_ACTION): cv.SCRIPT_SCHEMA,
         #TODO: vol.Optional(CONF_SPEED_COUNT): vol.Coerce(int),
         #TODO: vol.Optional(
@@ -103,3 +103,46 @@ CLIMATE_SCHEMA = vol.Schema(
 PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend(
     {vol.Required(CONF_CLIMATES): cv.schema_with_slug_keys(CLIMATE_SCHEMA)}
 )
+
+
+async def _async_create_entities(hass, config):
+    """Create the Template Climates."""
+    climates = []
+
+    for device, device_config in config[CONF_CLIMATES].items():
+        friendly_name = device_config.get(CONF_FRIENDLY_NAME, device)
+
+        state_template = device_config[CONF_VALUE_TEMPLATE]
+        #TODO: availability_template = device_config.get(CONF_AVAILABILITY_TEMPLATE)
+
+        on_action = device_config.get(CONF_ON_ACTION)
+        off_action = device_config.get(CONF_OFF_ACTION)
+        set_hvac_mode_action = device_config[CONF_SET_HVAC_MODE_ACTION]
+        
+        #TODO: speed_list = device_config[CONF_SPEED_LIST]
+        #TODO: speed_count = device_config.get(CONF_SPEED_COUNT)
+        unique_id = device_config.get(CONF_UNIQUE_ID)
+
+        climates.append(
+            TemplateClimate(
+                hass,
+                device,
+                friendly_name,
+                state_template,
+                #TODO: availability_template,
+                on_action,
+                off_action,
+                set_hvac_mode_action,
+                #TODO: speed_count,
+                #TODO: speed_list,
+                unique_id,
+            )
+        )
+
+    return climates
+
+
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+    """Set up the template climates."""
+    async_add_entities(await _async_create_entities(hass, config))
+
