@@ -99,7 +99,7 @@ CLIMATE_SCHEMA = vol.Schema(
         vol.Optional(CONF_MIN_TEMP, default=DEFAULT_MIN_TEMP): vol.Coerce(float),
         vol.Optional(CONF_MAX_TEMP, default=DEFAULT_MAX_TEMP): vol.Coerce(float),
         vol.Optional(CONF_PRECISION): vol.In(
-            [PRECISION_TENTHS, PRECISION_HALVES, PRECISION_WHOLE],
+            [PRECISION_TENTHS, PRECISION_HALVES, PRECISION_WHOLE]),
         vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
         vol.Optional(CONF_UNIQUE_ID): cv.string,
     }
