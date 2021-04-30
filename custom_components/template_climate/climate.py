@@ -14,6 +14,7 @@ from homeassistant.components.climate import (
 )
 from homeassistant.components.climate.const import (
     ATTR_HVAC_MODE,
+    CURRENT_HVAC_ACTIONS,
     HVAC_MODE_OFF,
     HVAC_MODES,
 )
@@ -35,6 +36,7 @@ from homeassistant.core import callback
 _LOGGER = logging.getLogger(__name__)
 
 CONF_CLIMATES = "climates"
+CONF_HVAC_ACTION_TEMPLATE = "hvac_action_template"
 CONF_SET_HVAC_MODE_ACTION = "set_hvac_mode"
 CONF_HVAC_LIST = "hvac_modes"
 
@@ -42,6 +44,7 @@ CLIMATE_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_FRIENDLY_NAME): cv.string,
         vol.Required(CONF_VALUE_TEMPLATE): cv.template,
+        vol.Optional(CONF_HVAC_ACTION_TEMPLATE): cv.template,
         vol.Optional(CONF_AVAILABILITY_TEMPLATE): cv.template,
         vol.Required(CONF_SET_HVAC_MODE_ACTION): cv.SCRIPT_SCHEMA,
         vol.Optional(CONF_HVAC_LIST, default=HVAC_MODES): vol.All(
@@ -63,6 +66,7 @@ async def _async_create_entities(hass, config):
     for device, device_config in config[CONF_CLIMATES].items():
         friendly_name = device_config.get(CONF_FRIENDLY_NAME, device)
         state_template = device_config[CONF_VALUE_TEMPLATE]
+        hvac_action_template = device_config.get(CONF_HVAC_ACTION_TEMPLATE)
         availability_template = device_config.get(CONF_AVAILABILITY_TEMPLATE)
         set_hvac_mode_action = device_config[CONF_SET_HVAC_MODE_ACTION]
         hvac_list = device_config.get(CONF_HVAC_LIST)
@@ -74,6 +78,7 @@ async def _async_create_entities(hass, config):
                 device,
                 friendly_name,
                 state_template,
+                hvac_action_template,
                 availability_template,
                 set_hvac_mode_action,
                 hvac_list,
@@ -96,6 +101,7 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
         device_id,
         friendly_name,
         state_template,
+        hvac_action_template,
         availability_template,
         set_hvac_mode_action,
         hvac_list,
@@ -109,6 +115,7 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
         )
         self._name = friendly_name
         self._template = state_template
+        self._hvac_action_template = hvac_action_template
         self._hvac_list = hvac_list
         self._unique_id = unique_id
 
@@ -116,6 +123,7 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
         self._set_hvac_mode_script = Script(hass, set_hvac_mode_action, friendly_name, domain)
 
         self._state = None
+        self._hvac_action = None
         self._supported_features = 0
         self._temperature_unit = hass.config.units.temperature_unit
 
@@ -138,6 +146,11 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
     def hvac_mode(self):
         """Return current operation (state)."""
         return self._state or HVAC_MODE_OFF
+
+    @property
+    def hvac_action(self):
+        """Return the current running hvac operation."""
+        return self._hvac_action
 
     @property
     def hvac_modes(self):
@@ -169,15 +182,13 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
         if isinstance(result, TemplateError):
             self._state = None
             return
-
-        # Validate state
-        if result in self.hvac_modes:
+        elif result in self.hvac_modes:
             self._state = result
         elif result in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
             self._state = None
         else:
             _LOGGER.error(
-                "Received invalid climate hvac_mode state: %s. Expected: %s",
+                "Received invalid hvac_mode state: %s. Expected: %s",
                 result,
                 ", ".join(self.hvac_modes),
             )
@@ -186,4 +197,26 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
     async def async_added_to_hass(self):
         """Register callbacks."""
         self.add_template_attribute("_state", self._template, None, self._update_state)
+
+        if self._hvac_action_template is not None:
+            self.add_template_attribute(
+                "_hvac_action",
+                self._hvac_action_template,
+                None,
+                self._update_hvac_action,
+                none_on_template_error=True,
+            )
+
         await super().async_added_to_hass()
+
+    @callback
+    def _update_hvac_action(self, hvac_action):
+        if hvac_action in CURRENT_HVAC_ACTIONS:
+            self._hvac_action = hvac_action
+        elif hvac_action in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+            self._hvac_action = None
+        else:
+            _LOGGER.error(
+                "Received invalid hvac_action: %s. Expected: %s", hvac_action, CURRENT_HVAC_ACTIONS
+            )
+            self._hvac_action = None
