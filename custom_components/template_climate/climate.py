@@ -77,6 +77,7 @@ _LOGGER = logging.getLogger(__name__)
 # climate.set_preset_mode
 # climate.set_humidity
 # climate.set_swing_mode
+# additional properties: https://developers.home-assistant.io/docs/core/entity/climate/
 
 CONF_CLIMATES = "climates"
 CONF_ON_ACTION = "turn_on"
@@ -175,9 +176,8 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
         self._name = friendly_name
 
         self._template = state_template
-        self._supported_features = 0#TODO: ?
 
-        domain = __name__.split(".")[-2]#TODO: ?
+        domain = __name__.split(".")[-2]
 
         self._on_script = None
         if on_action:
@@ -193,20 +193,118 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
 
         self._set_hvac_mode_script = Script(hass, set_hvac_mode_action, friendly_name, domain)
 
-        self._state = STATE_UNKNOWN #TODO: ? (was OFF)
+        self._state = HVAC_MODE_OFF # starts off until first update
 
-        if (#TODO: this block
-            self._speed_template
-            or self._percentage_template
-            or self._preset_mode_template
-        ):
-            self._supported_features |= SUPPORT_SET_SPEED
-        if self._oscillating_template:
-            self._supported_features |= SUPPORT_OSCILLATE
-        if self._direction_template:
-            self._supported_features |= SUPPORT_DIRECTION
+        self._supported_features = 0
+        #TODO: if (
+        #     self._speed_template
+        #     or self._percentage_template
+        #     or self._preset_mode_template
+        # ):
+        #     self._supported_features |= SUPPORT_SET_SPEED
+        # if self._oscillating_template:
+        #     self._supported_features |= SUPPORT_OSCILLATE
+        # if self._direction_template:
+        #     self._supported_features |= SUPPORT_DIRECTION
+
+        self._hvac_list = [
+            HVAC_MODE_HEAT,
+            HVAC_MODE_COOL,
+            HVAC_MODE_HEAT_COOL,
+            HVAC_MODE_AUTO,
+            HVAC_MODE_DRY,
+            HVAC_MODE_FAN_ONLY,
+        ]
+        if (self._on_script or self._off_script)
+           self._hvac_list.append(HVAC_MODE_OFF) # this determines if turn on/off are available
 
         self._unique_id = unique_id
 
         #TODO: self._speed_count = speed_count
         #TODO: self._speed_list = speed_list
+
+    @property
+    def name(self):
+        """Return the display name of this climate."""
+        return self._name
+
+    @property
+    def unique_id(self):
+        """Return the unique id of this climate."""
+        return self._unique_id
+
+    @property
+    def supported_features(self) -> int:
+        """Flag supported features."""
+        return self._supported_features
+
+    #TODO: @property
+    # def speed_count(self) -> int:
+    #     """Return the number of speeds the fan supports."""
+    #     return self._speed_count or 100
+
+    #TODO: @property
+    # def speed_list(self) -> list:
+    #     """Get the list of available speeds."""
+    #     return self._speed_list
+
+    #TODO: @property
+    # def temperature_unit(self):
+    #     """Return the unit of measurement."""
+    #     return self._unit
+
+    #TODO: @property
+    # def precision(self):
+    #     """Return the precision of the temperature in the system."""
+    #     if self._temp_precision is not None:
+    #         return self._temp_precision
+    #     return super().precision
+
+    #TODO: @property
+    # def target_temperature_step(self):
+    #     """Return the supported step of target temperature."""
+    #     return self.precision
+
+    #TODO: @property
+    # def current_temperature(self):
+    #     """Return the sensor temperature."""
+    #     return self._cur_temp
+
+    @property
+    def hvac_mode(self):
+        """Return current operation (state)."""
+        return self._state
+
+    #TODO: @property
+    # def hvac_action(self):
+    #     """Return the current running hvac operation if supported.
+
+    #     Need to be one of CURRENT_HVAC_*.
+    #     """
+    #     if self._hvac_mode == HVAC_MODE_OFF:
+    #         return CURRENT_HVAC_OFF
+    #     if not self._is_device_active:
+    #         return CURRENT_HVAC_IDLE
+    #     if self.ac_mode:
+    #         return CURRENT_HVAC_COOL
+    #     return CURRENT_HVAC_HEAT
+
+    #TODO: @property
+    # def target_temperature(self):
+    #     """Return the temperature we try to reach."""
+    #     return self._target_temp
+
+    @property
+    def hvac_modes(self):
+        """List of available operation modes."""
+        return self._hvac_list
+
+    #TODO: @property
+    # def preset_mode(self):
+    #     """Return the current preset mode, e.g., home, away, temp."""
+    #     return PRESET_AWAY if self._is_away else PRESET_NONE
+
+    #TODO: @property
+    # def preset_modes(self):
+    #     """Return a list of available preset modes or PRESET_NONE if _away_temp is undefined."""
+    #     return [PRESET_NONE, PRESET_AWAY] if self._away_temp else PRESET_NONE
