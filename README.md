@@ -15,7 +15,7 @@ A HomeAssistant [climate](https://developers.home-assistant.io/docs/core/entity/
 - [x] @property: fan_modes
 - [x] SUPPORT_TARGET_TEMPERATURE
 - [x] climate.set_temperature
-- [x] @property: precision
+- [x] @property: precision (might not be working correctly)
 - [x] @property: current_temperature
 - [x] @property: target_temperature
 - [x] @property: target_temperature_step
