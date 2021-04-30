@@ -24,6 +24,7 @@ from homeassistant.const import (
     CONF_VALUE_TEMPLATE,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
+    TEMP_CELCIUS,
 )
 from .const import CONF_AVAILABILITY_TEMPLATE
 from .template_entity import TemplateEntity
@@ -142,6 +143,11 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
     def hvac_modes(self):
         """List of available operation modes."""
         return self._hvac_list
+
+    @property
+    def temperature_unit(self):
+        """Return the unit of measurement."""
+        return TEMP_CELCIUS
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
