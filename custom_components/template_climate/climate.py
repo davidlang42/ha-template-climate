@@ -12,8 +12,9 @@ from homeassistant.components.climate import (
     PLATFORM_SCHEMA,
 )
 from homeassistant.components.climate.const import (
-    HVAC_MODES,
+    ATTR_HVAC_MODE,
     HVAC_MODE_OFF,
+    HVAC_MODES,
 )
 from homeassistant.const import (
     CONF_ENTITY_ID,
@@ -104,20 +105,15 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
             ENTITY_ID_FORMAT, device_id, hass=hass
         )
         self._name = friendly_name
-
         self._template = state_template
+        self._hvac_list = hvac_list
+        self._unique_id = unique_id
 
         domain = __name__.split(".")[-2]
-
         self._set_hvac_mode_script = Script(hass, set_hvac_mode_action, friendly_name, domain)
 
         self._state = None
-
         self._supported_features = 0
-
-        self._hvac_list = hvac_list
-
-        self._unique_id = unique_id
 
     @property
     def name(self):
@@ -137,9 +133,7 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
     @property
     def hvac_mode(self):
         """Return current operation (state)."""
-        if (self._state)
-            return self._state
-        return HVAC_MODE_OFF
+        return self._state or HVAC_MODE_OFF
 
     @property
     def hvac_modes(self):
