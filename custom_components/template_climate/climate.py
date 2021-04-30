@@ -1,3 +1,4 @@
+# based heavily off other template components: https://github.com/home-assistant/core/tree/dev/homeassistant/components/template
 """Support for Template climate entities."""
 import logging
 
@@ -43,7 +44,9 @@ CLIMATE_SCHEMA = vol.Schema(
         vol.Required(CONF_VALUE_TEMPLATE): cv.template,
         vol.Optional(CONF_AVAILABILITY_TEMPLATE): cv.template,
         vol.Required(CONF_SET_HVAC_MODE_ACTION): cv.SCRIPT_SCHEMA,
-        vol.Optional(CONF_HVAC_LIST, default=HVAC_MODES): cv.ensure_list,#TODO: is this right?
+        vol.Optional(CONF_HVAC_LIST, default=HVAC_MODES): vol.All(
+            cv.ensure_list, [vol.In(HVAC_MODES)]
+        ),
         vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
         vol.Optional(CONF_UNIQUE_ID): cv.string,
     }
