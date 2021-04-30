@@ -3,7 +3,7 @@ import logging
 
 import voluptuous as vol
 
-DOMAIN = "template_climate"
+DOMAIN = "template_climate"#TODO:?
 
 import homeassistant.helpers.config_validation as cv
 from homeassistant.components.climate import (
@@ -308,3 +308,17 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
     # def preset_modes(self):
     #     """Return a list of available preset modes or PRESET_NONE if _away_temp is undefined."""
     #     return [PRESET_NONE, PRESET_AWAY] if self._away_temp else PRESET_NONE
+
+    async def async_set_hvac_mode(self, hvac_mode):
+        """Set new target hvac mode."""
+        if hvac_mode not in self.hvac_modes:
+            _LOGGER.error(
+                "Received invalid hvac_mode: %s. Expected: %s", hvac_mode, self.hvac_modes
+            )
+            return
+
+        self._state = hvac_mode
+        
+        await self._set_hvac_mode_script.async_run(
+            {ATTR_HVAC_MODE : self._state}, context=self._context
+        )
