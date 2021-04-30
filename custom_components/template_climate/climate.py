@@ -270,7 +270,7 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
     @property
     def precision(self):
         """The precision of the temperature in the system."""
-        return self._precision
+        return self._precision or super.precision
     
     @property
     def current_temperature(self):
