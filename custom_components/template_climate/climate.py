@@ -4,7 +4,7 @@ import logging
 
 import voluptuous as vol
 
-DOMAIN = "template_climate"#TODO:?
+DOMAIN = "template_climate"
 
 import homeassistant.helpers.config_validation as cv
 from homeassistant.components.climate import (
