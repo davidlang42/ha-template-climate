@@ -49,6 +49,9 @@ from homeassistant.const import (
     CONF_FRIENDLY_NAME,
     CONF_UNIQUE_ID,
     CONF_VALUE_TEMPLATE,
+    PRECISION_WHOLE,
+    PRECISION_HALVES,
+    PRECISION_TENTHS,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
 )
@@ -95,7 +98,8 @@ CLIMATE_SCHEMA = vol.Schema(
         vol.Optional(CONF_TEMPERATURE_STEP): vol.Coerce(float),
         vol.Optional(CONF_MIN_TEMP, default=DEFAULT_MIN_TEMP): vol.Coerce(float),
         vol.Optional(CONF_MAX_TEMP, default=DEFAULT_MAX_TEMP): vol.Coerce(float),
-        vol.Optional(CONF_PRECISION, default=1): vol.Coerce(float),
+        vol.Optional(CONF_PRECISION): vol.In(
+            [PRECISION_TENTHS, PRECISION_HALVES, PRECISION_WHOLE],
         vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
         vol.Optional(CONF_UNIQUE_ID): cv.string,
     }
@@ -270,7 +274,7 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
     @property
     def precision(self):
         """The precision of the temperature in the system."""
-        return self._precision
+        return self._precision or super().precision
     
     @property
     def current_temperature(self):
