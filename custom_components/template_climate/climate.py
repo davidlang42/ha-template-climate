@@ -24,7 +24,6 @@ from homeassistant.const import (
     CONF_VALUE_TEMPLATE,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
-    TEMP_CELSIUS,
 )
 from .const import CONF_AVAILABILITY_TEMPLATE
 from .template_entity import TemplateEntity
@@ -118,6 +117,7 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
 
         self._state = None
         self._supported_features = 0
+        self._temperature_unit = hass.config.units.temperature_unit
 
     @property
     def name(self):
@@ -147,7 +147,7 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
     @property
     def temperature_unit(self):
         """Return the unit of measurement."""
-        return TEMP_CELSIUS
+        return self._temperature_unit
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
