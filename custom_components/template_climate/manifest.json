@@ -1,0 +1,10 @@
+{
+    "domain": "template_climate",
+    "name": "Template Climate",
+    "documentation": "https://github.com/davidlang42/ha-template-climate/",
+    "dependencies": [],
+    "codeowners": ["@davidlang42"],
+    "requirements": [],
+    "iot_class": "local_push",
+    "version": "0.1.0"
+}

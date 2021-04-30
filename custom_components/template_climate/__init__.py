@@ -1,0 +1,1 @@
+"""A custom template component for the climate domain."""
