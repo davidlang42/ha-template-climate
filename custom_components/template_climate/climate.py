@@ -193,7 +193,7 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
 
         self._set_hvac_mode_script = Script(hass, set_hvac_mode_action, friendly_name, domain)
 
-        self._state = HVAC_MODE_OFF # starts off until first update
+        self._state = None
 
         self._supported_features = 0
         #TODO: if (
@@ -273,7 +273,9 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
     @property
     def hvac_mode(self):
         """Return current operation (state)."""
-        return self._state
+        if (self._state)
+            return self._state
+        return HVAC_MODE_OFF
 
     #TODO: @property
     # def hvac_action(self):
@@ -318,7 +320,32 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
             return
 
         self._state = hvac_mode
-        
+
         await self._set_hvac_mode_script.async_run(
             {ATTR_HVAC_MODE : self._state}, context=self._context
         )
+
+    @callback
+    def _update_state(self, result):
+        super()._update_state(result)
+        if isinstance(result, TemplateError):
+            self._state = None
+            return
+
+        # Validate state
+        if result in self.hvac_modes:
+            self._state = result
+        elif result in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+            self._state = None
+        else:
+            _LOGGER.error(
+                "Received invalid climate hvac_mode state: %s. Expected: %s",
+                result,
+                ", ".join(self.hvac_modes),
+            )
+            self._state = None
+
+    async def async_added_to_hass(self):
+        """Register callbacks."""
+        self.add_template_attribute("_state", self._template, None, self._update_state)
+        await super().async_added_to_hass()
