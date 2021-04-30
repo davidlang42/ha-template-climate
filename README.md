@@ -3,6 +3,9 @@ A HomeAssistant [climate](https://developers.home-assistant.io/docs/core/entity/
 
 ## Features required for MVP ##
 - [x] @property: hvac_action
+- [x] climate.set_fan_mode
+- [x] @property: fan_mode
+- [x] @property: fan_modes
 - [ ] climate.set_temperature
 - [ ] @property: precision
 - [ ] @property: current_temperature
@@ -12,9 +15,6 @@ A HomeAssistant [climate](https://developers.home-assistant.io/docs/core/entity/
 - [ ] @property: target_temperature_step
 - [ ] @property: max_temp
 - [ ] @property: min_temp
-- [ ] climate.set_fan_mode
-- [ ] @property: fan_mode
-- [ ] @property: fan_modes
 
 ## Features to complete ##
 - [ ] climate.set_aux_heat

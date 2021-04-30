@@ -14,10 +14,32 @@ from homeassistant.components.climate import (
 )
 from homeassistant.components.climate.const import (
     ATTR_HVAC_MODE,
+    ATTR_FAN_MODE,
     CURRENT_HVAC_ACTIONS,
+    FAN_ON,
+    FAN_OFF,
+    FAN_AUTO,
+    FAN_LOW,
+    FAN_MEDIUM,
+    FAN_HIGH,
+    FAN_MIDDLE,
+    FAN_FOCUS,
+    FAN_DIFFUSE,
     HVAC_MODE_OFF,
     HVAC_MODES,
+    SUPPORT_FAN_MODE,
 )
+FAN_MODES = [ # this should really be part of homeassistant.components.climate.const
+    FAN_ON,
+    FAN_OFF,
+    FAN_AUTO,
+    FAN_LOW,
+    FAN_MEDIUM,
+    FAN_HIGH,
+    FAN_MIDDLE,
+    FAN_FOCUS,
+    FAN_DIFFUSE,
+]
 from homeassistant.const import (
     CONF_ENTITY_ID,
     CONF_FRIENDLY_NAME,
@@ -38,18 +60,23 @@ _LOGGER = logging.getLogger(__name__)
 CONF_CLIMATES = "climates"
 CONF_HVAC_ACTION_TEMPLATE = "hvac_action_template"
 CONF_SET_HVAC_MODE_ACTION = "set_hvac_mode"
-CONF_HVAC_LIST = "hvac_modes"
+CONF_HVAC_MODES = "hvac_modes"
+CONF_FAN_MODES = "fan_modes"
+CONF_FAN_MODE_TEMPLATE = "fan_mode_template"
 
 CLIMATE_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_FRIENDLY_NAME): cv.string,
-        vol.Required(CONF_VALUE_TEMPLATE): cv.template,
+        vol.Required(CONF_VALUE_TEMPLATE): cv.template, # this could be optional if the state was stored/restored
         vol.Optional(CONF_HVAC_ACTION_TEMPLATE): cv.template,
         vol.Optional(CONF_AVAILABILITY_TEMPLATE): cv.template,
         vol.Required(CONF_SET_HVAC_MODE_ACTION): cv.SCRIPT_SCHEMA,
-        vol.Optional(CONF_HVAC_LIST, default=HVAC_MODES): vol.All(
+        vol.Optional(CONF_HVAC_MODES, default=HVAC_MODES): vol.All(
             cv.ensure_list, [vol.In(HVAC_MODES)]
         ),
+        vol.Optional(CONF_SET_FAN_MODE_ACTION): cv.SCRIPT_SCHEMA,
+        vol.Optional(CONF_FAN_MODES, default=FAN_MODES): cv.ensure_list,
+        vol.Optional(CONF_FAN_MODE_TEMPLATE): cv.template,
         vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
         vol.Optional(CONF_UNIQUE_ID): cv.string,
     }
@@ -69,7 +96,10 @@ async def _async_create_entities(hass, config):
         hvac_action_template = device_config.get(CONF_HVAC_ACTION_TEMPLATE)
         availability_template = device_config.get(CONF_AVAILABILITY_TEMPLATE)
         set_hvac_mode_action = device_config[CONF_SET_HVAC_MODE_ACTION]
-        hvac_list = device_config.get(CONF_HVAC_LIST)
+        hvac_modes = device_config.get(CONF_HVAC_MODES)
+        set_fan_mode_action = device_config.get(CONF_SET_FAN_MODE_ACTION)
+        fan_modes = device_config.get(CONF_FAN_MODES)
+        fan_mode_template = device_config.get(CONF_FAN_MODE_TEMPLATE)
         unique_id = device_config.get(CONF_UNIQUE_ID)
 
         climates.append(
@@ -81,7 +111,10 @@ async def _async_create_entities(hass, config):
                 hvac_action_template,
                 availability_template,
                 set_hvac_mode_action,
-                hvac_list,
+                hvac_modes,
+                set_fan_mode_action,
+                fan_modes,
+                fan_mode_template,
                 unique_id,
             )
         )
@@ -104,7 +137,10 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
         hvac_action_template,
         availability_template,
         set_hvac_mode_action,
-        hvac_list,
+        hvac_modes,
+        set_fan_mode_action,
+        fan_modes,
+        fan_mode_template,
         unique_id,
     ):
         """Initialize the climate."""
@@ -116,16 +152,23 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
         self._name = friendly_name
         self._template = state_template
         self._hvac_action_template = hvac_action_template
-        self._hvac_list = hvac_list
+        self._hvac_modes = hvac_modes
+        self._fan_modes = fan_modes
+        self._fan_mode_template = fan_mode_template
         self._unique_id = unique_id
-
-        domain = __name__.split(".")[-2]
-        self._set_hvac_mode_script = Script(hass, set_hvac_mode_action, friendly_name, domain)
 
         self._state = None
         self._hvac_action = None
+        self._fan_mode = None
         self._supported_features = 0
         self._temperature_unit = hass.config.units.temperature_unit
+
+        domain = __name__.split(".")[-2]
+        self._set_hvac_mode_script = Script(hass, set_hvac_mode_action, friendly_name, domain)
+        self._set_fan_mode_script = None
+        if set_fan_mode_action:
+            self._set_fan_mode_script = Script(hass, set_fan_mode_action, friendly_name, domain)
+            self._supported_features |= SUPPORT_FAN_MODE
 
     @property
     def name(self):
@@ -155,12 +198,22 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
     @property
     def hvac_modes(self):
         """List of available operation modes."""
-        return self._hvac_list
+        return self._hvac_modes
 
     @property
     def temperature_unit(self):
         """Return the unit of measurement."""
         return self._temperature_unit
+
+    @property
+    def fan_mode(self):
+        """Returns the current fan mode."""
+        return self._fan_mode
+
+    @property
+    def fan_modes(self):
+        """	Returns the list of available fan modes."""
+        return self._fan_modes
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
@@ -173,8 +226,23 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
         self._state = hvac_mode
 
         await self._set_hvac_mode_script.async_run(
-            {ATTR_HVAC_MODE : self._state}, context=self._context
+            {ATTR_HVAC_MODE : hvac_mode}, context=self._context
         )
+
+    async def async_set_fan_mode(self, fan_mode):
+        """Set new target fan mode."""
+        if fan_mode not in self.fan_modes:
+            _LOGGER.error(
+                "Received invalid fan_mode: %s. Expected: %s", fan_mode, self.fan_modes
+            )
+            return
+
+        self._fan_mode = fan_mode
+
+        if self._set_fan_mode_script:
+            await self._set_fan_mode_script.async_run(
+                {ATTR_FAN_MODE : fan_mode}, context=self._context
+            )
 
     @callback
     def _update_state(self, result):
@@ -188,7 +256,7 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
             self._state = None
         else:
             _LOGGER.error(
-                "Received invalid hvac_mode state: %s. Expected: %s",
+                "Received invalid state: %s. Expected: %s",
                 result,
                 ", ".join(self.hvac_modes),
             )
@@ -207,6 +275,15 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
                 none_on_template_error=True,
             )
 
+        if self._fan_mode_template is not None:
+            self.add_template_attribute(
+                "_fan_mode",
+                self._fan_mode_template,
+                None,
+                self._update_fan_mode,
+                none_on_template_error=True,
+            )
+
         await super().async_added_to_hass()
 
     @callback
@@ -220,3 +297,15 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
                 "Received invalid hvac_action: %s. Expected: %s", hvac_action, CURRENT_HVAC_ACTIONS
             )
             self._hvac_action = None
+    
+    @callback
+    def _update_fan_mode(self, fan_mode):
+        if fan_mode in self.fan_modes:
+            self._fan_mode = fan_mode
+        elif fan_mode in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+            self._fan_mode = None
+        else:
+            _LOGGER.error(
+                "Received invalid hvac_action: %s. Expected: %s", fan_mode, self.fan_modes
+            )
+            self._fan_mode = None
