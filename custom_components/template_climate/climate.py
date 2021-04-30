@@ -383,23 +383,23 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
                 none_on_template_error=True,
             )
 
-        # if self._temperature_template is not None:
-        #     self.add_template_attribute(
-        #         "_temperature",
-        #         self._temperature_template,
-        #         None,
-        #         self._update_temperature,
-        #         none_on_template_error=True,
-        #     )
+        if self._temperature_template is not None:
+            self.add_template_attribute(
+                "_temperature",
+                self._temperature_template,
+                None,
+                self._update_temperature,
+                none_on_template_error=True,
+            )
 
-        # if self._current_temperature_template is not None:
-        #     self.add_template_attribute(
-        #         "_current_temperature",
-        #         self._current_temperature_template,
-        #         None,
-        #         self._update_current_temperature,
-        #         none_on_template_error=True,
-        #     )
+        if self._current_temperature_template is not None:
+            self.add_template_attribute(
+                "_current_temperature",
+                self._current_temperature_template,
+                None,
+                self._update_current_temperature,
+                none_on_template_error=True,
+            )
 
         await super().async_added_to_hass()
 
