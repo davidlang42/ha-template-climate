@@ -1,7 +1,13 @@
 # ha-template-climate
 A HomeAssistant [climate](https://developers.home-assistant.io/docs/core/entity/climate/) integration using templates, similar to the built in fan/sensor/light [template integrations](https://github.com/home-assistant/core/tree/dev/homeassistant/components/template).
 
-## Features required for MVP ##
+- [x] entity availability set by `availability_template`
+- [x] entity name set by `friendly_name`
+- [x] climate.set_hvac_mode
+- [x] climate.turn_on
+- [x] climate.turn_off
+- [x] @property: hvac_mode (aka entity state)
+- [x] @property: hvac_modes
 - [x] @property: hvac_action
 - [x] SUPPORT_FAN_MODE
 - [x] climate.set_fan_mode
@@ -15,8 +21,6 @@ A HomeAssistant [climate](https://developers.home-assistant.io/docs/core/entity/
 - [x] @property: target_temperature_step
 - [x] @property: max_temp
 - [x] @property: min_temp
-
-## Features to complete ##
 - [ ] SUPPORT_TARGET_TEMPERATURE_RANGE
 - [ ] @property: target_temperature_low
 - [ ] @property: target_temperature_high
