@@ -28,6 +28,7 @@ from homeassistant.components.climate.const import (
     HVAC_MODE_OFF,
     HVAC_MODES,
     SUPPORT_FAN_MODE,
+    SUPPORT_TARGET_TEMPERATURE,
 )
 FAN_MODES = [ # this should really be part of homeassistant.components.climate.const
     FAN_ON,
@@ -41,6 +42,7 @@ FAN_MODES = [ # this should really be part of homeassistant.components.climate.c
     FAN_DIFFUSE,
 ]
 from homeassistant.const import (
+    ATTR_TEMPERATURE,
     CONF_ENTITY_ID,
     CONF_FRIENDLY_NAME,
     CONF_UNIQUE_ID,
@@ -64,11 +66,18 @@ CONF_HVAC_MODES = "hvac_modes"
 CONF_SET_FAN_MODE_ACTION = "set_fan_mode"
 CONF_FAN_MODES = "fan_modes"
 CONF_FAN_MODE_TEMPLATE = "fan_mode_template"
+CONF_SET_TEMPERATURE_ACTION = "set_temperature"
+CONF_TEMPERATURE_TEMPLATE = "temperature_template"
+CONF_CURRENT_TEMPERATURE_TEMPLATE = "current_temperature_template"
+CONF_TEMPERATURE_STEP = "temperature_step"
+CONF_MIN_TEMP = "min_temp"
+CONF_MAX_TEMP = "max_temp"
+CONF_PRECISION = "precision"
 
 CLIMATE_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_FRIENDLY_NAME): cv.string,
-        vol.Required(CONF_VALUE_TEMPLATE): cv.template, # this could be optional if the state was stored/restored
+        vol.Required(CONF_VALUE_TEMPLATE): cv.template,
         vol.Optional(CONF_HVAC_ACTION_TEMPLATE): cv.template,
         vol.Optional(CONF_AVAILABILITY_TEMPLATE): cv.template,
         vol.Required(CONF_SET_HVAC_MODE_ACTION): cv.SCRIPT_SCHEMA,
@@ -78,6 +87,13 @@ CLIMATE_SCHEMA = vol.Schema(
         vol.Optional(CONF_SET_FAN_MODE_ACTION): cv.SCRIPT_SCHEMA,
         vol.Optional(CONF_FAN_MODES, default=FAN_MODES): cv.ensure_list,
         vol.Optional(CONF_FAN_MODE_TEMPLATE): cv.template,
+        vol.Optional(CONF_SET_TEMPERATURE_ACTION): cv.SCRIPT_SCHEMA,
+        vol.Optional(CONF_TEMPERATURE_TEMPLATE): cv.template,
+        vol.Optional(CONF_CURRENT_TEMPERATURE_TEMPLATE): cv.template,
+        vol.Optional(CONF_TEMPERATURE_STEP): vol.Coerce(float),
+        vol.Optional(CONF_MIN_TEMP): vol.Coerce(float),
+        vol.Optional(CONF_MAX_TEMP): vol.Coerce(float),
+        vol.Optional(CONF_PRECISION): vol.Coerce(float),
         vol.Optional(CONF_ENTITY_ID): cv.entity_ids,
         vol.Optional(CONF_UNIQUE_ID): cv.string,
     }
@@ -101,6 +117,13 @@ async def _async_create_entities(hass, config):
         set_fan_mode_action = device_config.get(CONF_SET_FAN_MODE_ACTION)
         fan_modes = device_config.get(CONF_FAN_MODES)
         fan_mode_template = device_config.get(CONF_FAN_MODE_TEMPLATE)
+        set_temperature_action = device_config.get(CONF_SET_TEMPERATURE_ACTION)
+        temperature_template = device_config.get(CONF_TEMPERATURE_TEMPLATE)
+        current_temperature_template = device_config.get(CONF_CURRENT_TEMPERATURE_TEMPLATE)
+        temperature_step = device_config.get(CONF_TEMPERATURE_STEP)
+        min_temp = device_config.get(CONF_MIN_TEMP)
+        max_temp = device_config.get(CONF_MAX_TEMP)
+        precision = device_config.get(CONF_PRECISION)
         unique_id = device_config.get(CONF_UNIQUE_ID)
 
         climates.append(
@@ -116,6 +139,13 @@ async def _async_create_entities(hass, config):
                 set_fan_mode_action,
                 fan_modes,
                 fan_mode_template,
+                set_temperature_action,
+                temperature_template,
+                current_temperature_template,
+                temperature_step,
+                min_temp,
+                max_temp,
+                precision,
                 unique_id,
             )
         )
@@ -142,6 +172,13 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
         set_fan_mode_action,
         fan_modes,
         fan_mode_template,
+        set_temperature_action,
+        temperature_template,
+        current_temperature_template,
+        temperature_step,
+        min_temp,
+        max_temp,
+        precision,
         unique_id,
     ):
         """Initialize the climate."""
@@ -156,11 +193,19 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
         self._hvac_modes = hvac_modes
         self._fan_modes = fan_modes
         self._fan_mode_template = fan_mode_template
+        self._temperature_template = temperature_template,
+        self._current_temperature_template = current_temperature_template,
+        self._temperature_step = temperature_step,
+        self._min_temp = min_temp,
+        self._max_temp = max_temp,
+        self._precision = precision,
         self._unique_id = unique_id
 
         self._state = None
         self._hvac_action = None
         self._fan_mode = None
+        self._temperature = None
+        self._current_temperature = None
         self._supported_features = 0
         self._temperature_unit = hass.config.units.temperature_unit
 
@@ -170,6 +215,10 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
         if set_fan_mode_action:
             self._set_fan_mode_script = Script(hass, set_fan_mode_action, friendly_name, domain)
             self._supported_features |= SUPPORT_FAN_MODE
+        self._set_temperature_script = None
+        if set_temperature_action:
+            self._set_temperature_script = Script(hass, set_temperature_action, friendly_name, domain)
+            self._supported_features |= SUPPORT_TARGET_TEMPERATURE
 
     @property
     def name(self):
@@ -189,7 +238,7 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
     @property
     def hvac_mode(self):
         """Return current operation (state)."""
-        return self._state or HVAC_MODE_OFF
+        return self._state
 
     @property
     def hvac_action(self):
@@ -213,8 +262,38 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
 
     @property
     def fan_modes(self):
-        """	Returns the list of available fan modes."""
+        """Returns the list of available fan modes."""
         return self._fan_modes
+
+    @property
+    def precision(self):
+        """The precision of the temperature in the system."""
+        return self._precision
+    
+    @property
+    def current_temperature(self):
+        """The current temperature."""
+        return self._current_temperature
+
+    @property
+    def target_temperature(self):
+        """The temperature currently set to be reached."""
+        return self._temperature
+
+    @property
+    def target_temperature_step(self):
+        """The supported step size a target temperature can be increased/decreased"""
+        return self._temperature_step
+
+    @property
+    def min_temp(self):
+        """Returns the minimum temperature."""
+        return self._min_temp
+
+    @property
+    def max_temp(self):
+        """Returns the maximum temperature."""
+        return self._max_temp
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
@@ -243,6 +322,25 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
         if self._set_fan_mode_script:
             await self._set_fan_mode_script.async_run(
                 {ATTR_FAN_MODE : fan_mode}, context=self._context
+            )
+
+    async def async_set_temperature(self, **kwargs):
+        """Set new target temperature."""
+        temperature = kwargs.get(ATTR_TEMPERATURE)
+        if temperature is None:
+            return
+        
+        if temperature > self.max_temp or temperature < self.min_temp:
+            _LOGGER.error(
+                "Received invalid temperature: %s. Expected: %s-%s", temperature, self.min_temp, self.max_temp
+            )
+            return
+
+        self._temperature = temperature
+
+        if self._set_temperature_script:
+            await self._set_temperature_script.async_run(
+                {ATTR_TEMPERATURE : temperature}, context=self._context
             )
 
     @callback
@@ -285,6 +383,24 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
                 none_on_template_error=True,
             )
 
+        if self._temperature_template is not None:
+            self.add_template_attribute(
+                "_temperature",
+                self._temperature_template,
+                None,
+                self._update_temperature,
+                none_on_template_error=True,
+            )
+
+        if self._current_temperature_template is not None:
+            self.add_template_attribute(
+                "_current_temperature",
+                self._current_temperature_template,
+                None,
+                self._update_current_temperature,
+                none_on_template_error=True,
+            )
+
         await super().async_added_to_hass()
 
     @callback
@@ -310,3 +426,27 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
                 "Received invalid hvac_action: %s. Expected: %s", fan_mode, self.fan_modes
             )
             self._fan_mode = None
+
+    @callback
+    def _update_temperature(self, temperature):
+        if temperature <= self.max_temp and temperature >= self.min_temp:
+            self._temperature = temperature
+        elif temperature in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+            self._temperature = None
+        else:
+            _LOGGER.error(
+                "Received invalid temperature: %s. Expected: %s-%s", temperature, self.min_temp, self.max_temp
+            )
+            self._temperature = None
+
+    @callback
+    def _update_current_temperature(self, current_temperature):
+        if current_temperature <= self.max_temp and current_temperature >= self.min_temp:
+            self._current_temperature = current_temperature
+        elif current_temperature in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+            self._current_temperature = None
+        else:
+            _LOGGER.error(
+                "Received invalid current temperature: %s. Expected: %s-%s", current_temperature, self.min_temp, self.max_temp
+            )
+            self._current_temperature = None

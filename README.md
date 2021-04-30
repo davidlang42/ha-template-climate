@@ -3,30 +3,37 @@ A HomeAssistant [climate](https://developers.home-assistant.io/docs/core/entity/
 
 ## Features required for MVP ##
 - [x] @property: hvac_action
+- [x] SUPPORT_FAN_MODE
 - [x] climate.set_fan_mode
 - [x] @property: fan_mode
 - [x] @property: fan_modes
-- [ ] climate.set_temperature
-- [ ] @property: precision
-- [ ] @property: current_temperature
-- [ ] @property: target_temperature
-- [ ] @property: target_temperature_low
-- [ ] @property: target_temperature_high
-- [ ] @property: target_temperature_step
-- [ ] @property: max_temp
-- [ ] @property: min_temp
+- [x] SUPPORT_TARGET_TEMPERATURE
+- [x] climate.set_temperature
+- [x] @property: precision
+- [x] @property: current_temperature
+- [x] @property: target_temperature
+- [x] @property: target_temperature_step
+- [x] @property: max_temp
+- [x] @property: min_temp
 
 ## Features to complete ##
+- [ ] SUPPORT_TARGET_TEMPERATURE_RANGE
+- [ ] @property: target_temperature_low
+- [ ] @property: target_temperature_high
+- [ ] SUPPORT_AUX_HEAT
 - [ ] climate.set_aux_heat
 - [ ] @property: is_aux_heat
+- [ ] SUPPORT_PRESET_MODE
 - [ ] climate.set_preset_mode
 - [ ] @property: preset_mode
-- [ ] @property: preset_modes 
+- [ ] @property: preset_modes
+- [ ] SUPPORT_TARGET_HUMIDITY
 - [ ] climate.set_humidity
 - [ ] @property: current_humidity
 - [ ] @property: target_humidity
 - [ ] @property: max_humidity
 - [ ] @property: min_humidity
+- [ ] SUPPORT_SWING_MODE
 - [ ] climate.set_swing_mode
 - [ ] @property: swing_mode
 - [ ] @property: swing_modes
