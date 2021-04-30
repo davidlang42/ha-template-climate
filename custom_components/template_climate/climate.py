@@ -61,6 +61,7 @@ CONF_CLIMATES = "climates"
 CONF_HVAC_ACTION_TEMPLATE = "hvac_action_template"
 CONF_SET_HVAC_MODE_ACTION = "set_hvac_mode"
 CONF_HVAC_MODES = "hvac_modes"
+CONF_SET_FAN_MODE_ACTION = "set_fan_mode"
 CONF_FAN_MODES = "fan_modes"
 CONF_FAN_MODE_TEMPLATE = "fan_mode_template"
 
