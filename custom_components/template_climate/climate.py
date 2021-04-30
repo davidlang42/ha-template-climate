@@ -273,12 +273,12 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
     @property
     def current_temperature(self):
         """The current temperature."""
-        return self._current_temperature or 0
+        return self._current_temperature
 
     @property
     def target_temperature(self):
         """The temperature currently set to be reached."""
-        return self._temperature or 0
+        return self._temperature
 
     @property
     def target_temperature_step(self):
