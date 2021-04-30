@@ -1,5 +1,5 @@
 # ha-template-climate
-A HomeAssistant climate integration using templates, similar to the built in fan/sensor/light [template integrations](https://github.com/home-assistant/core/tree/dev/homeassistant/components/template).
+A HomeAssistant [climate](https://developers.home-assistant.io/docs/core/entity/climate/) integration using templates, similar to the built in fan/sensor/light [template integrations](https://github.com/home-assistant/core/tree/dev/homeassistant/components/template).
 
 ## Features required for MVP ##
 - [ ] @property: hvac_action
