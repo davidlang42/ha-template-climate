@@ -6,7 +6,11 @@ import voluptuous as vol
 DOMAIN = "template_climate"
 
 import homeassistant.helpers.config_validation as cv
-from homeassistant.components.climate import PLATFORM_SCHEMA, ClimateEntity#TODO: what of these do I actually need?
+from homeassistant.components.climate import (
+    ClimateEntity,
+    ENTITY_ID_FORMAT,
+    #TODO: do I need this? PLATFORM_SCHEMA,
+)
 from homeassistant.components.climate.const import (#TODO: what of these do I actually need?
     ATTR_PRESET_MODE,
     CURRENT_HVAC_COOL,
@@ -41,8 +45,8 @@ from homeassistant.const import ( #TODO: what of these do I actually need?
     SERVICE_TURN_OFF,
     SERVICE_TURN_ON,
 )
-#TODO: from .const import CONF_AVAILABILITY_TEMPLATE
-from .template_entity import TemplateEntity#TODO: do i need this? and therefore the template_entity.py file
+from .const import CONF_AVAILABILITY_TEMPLATE
+from .template_entity import TemplateEntity
 #TODO: what of these do I actually need?
 from homeassistant.exceptions import TemplateError
 from homeassistant.helpers.entity import async_generate_entity_id
@@ -55,7 +59,6 @@ from homeassistant.helpers.script import Script
 #     async_track_time_interval,
 # )
 # from homeassistant.helpers.reload import async_setup_reload_service
-# from homeassistant.helpers.restore_state import RestoreEntity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,11 +66,11 @@ _LOGGER = logging.getLogger(__name__)
 # climate.set_hvac_mode
 # climate.turn_on
 # climate.turn_off
+# availability
 
 #TODO: MVP SERVICES
 # climate.set_temperature
 # climate.set_fan_mode
-# availability
 
 #TODO: FUTURE SERVICES
 # climate.set_aux_heat
@@ -86,7 +89,7 @@ CLIMATE_SCHEMA = vol.Schema(
     {
         vol.Optional(CONF_FRIENDLY_NAME): cv.string,
         vol.Required(CONF_VALUE_TEMPLATE): cv.template,
-        #TODO: vol.Optional(CONF_AVAILABILITY_TEMPLATE): cv.template,
+        vol.Optional(CONF_AVAILABILITY_TEMPLATE): cv.template,
         vol.Optional(CONF_ON_ACTION): cv.SCRIPT_SCHEMA,
         vol.Optional(CONF_OFF_ACTION): cv.SCRIPT_SCHEMA,
         vol.Required(CONF_SET_HVAC_MODE_ACTION): cv.SCRIPT_SCHEMA,
@@ -113,7 +116,7 @@ async def _async_create_entities(hass, config):
         friendly_name = device_config.get(CONF_FRIENDLY_NAME, device)
 
         state_template = device_config[CONF_VALUE_TEMPLATE]
-        #TODO: availability_template = device_config.get(CONF_AVAILABILITY_TEMPLATE)
+        availability_template = device_config.get(CONF_AVAILABILITY_TEMPLATE)
 
         on_action = device_config.get(CONF_ON_ACTION)
         off_action = device_config.get(CONF_OFF_ACTION)
@@ -129,7 +132,7 @@ async def _async_create_entities(hass, config):
                 device,
                 friendly_name,
                 state_template,
-                #TODO: availability_template,
+                availability_template,
                 on_action,
                 off_action,
                 set_hvac_mode_action,
@@ -146,3 +149,64 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     """Set up the template climates."""
     async_add_entities(await _async_create_entities(hass, config))
 
+class TemplateClimate(TemplateEntity, ClimateEntity):
+    """A template climate component."""
+
+    def __init__(
+        self,
+        hass,
+        device_id,
+        friendly_name,
+        state_template,
+        availability_template,
+        on_action,
+        off_action,
+        set_hvac_mode_action,
+        #TODO: speed_count,
+        #TODO: speed_list,
+        unique_id,
+    ):
+        """Initialize the climate."""
+        super().__init__(availability_template=availability_template)
+        self.hass = hass
+        self.entity_id = async_generate_entity_id(
+            ENTITY_ID_FORMAT, device_id, hass=hass
+        )
+        self._name = friendly_name
+
+        self._template = state_template
+        self._supported_features = 0#TODO: ?
+
+        domain = __name__.split(".")[-2]#TODO: ?
+
+        self._on_script = None
+        if on_action:
+            self._on_script = Script(
+                hass, on_action, friendly_name, domain
+            )
+
+        self._off_script = None
+        if off_action:
+            self._off_script = Script(
+                hass, off_action, friendly_name, domain
+            )
+
+        self._set_hvac_mode_script = Script(hass, set_hvac_mode_action, friendly_name, domain)
+
+        self._state = STATE_UNKNOWN #TODO: ? (was OFF)
+
+        if (#TODO: this block
+            self._speed_template
+            or self._percentage_template
+            or self._preset_mode_template
+        ):
+            self._supported_features |= SUPPORT_SET_SPEED
+        if self._oscillating_template:
+            self._supported_features |= SUPPORT_OSCILLATE
+        if self._direction_template:
+            self._supported_features |= SUPPORT_DIRECTION
+
+        self._unique_id = unique_id
+
+        #TODO: self._speed_count = speed_count
+        #TODO: self._speed_list = speed_list
