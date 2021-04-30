@@ -110,7 +110,6 @@ PLATFORM_SCHEMA = cv.PLATFORM_SCHEMA.extend(
     {vol.Required(CONF_CLIMATES): cv.schema_with_slug_keys(CLIMATE_SCHEMA)}
 )
 
-
 async def _async_create_entities(hass, config):
     """Create the Template Climates."""
     climates = []
@@ -137,7 +136,6 @@ async def _async_create_entities(hass, config):
         )
 
     return climates
-
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up the template climates."""
@@ -194,38 +192,6 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
         """Flag supported features."""
         return self._supported_features
 
-    #TODO: @property
-    # def speed_count(self) -> int:
-    #     """Return the number of speeds the fan supports."""
-    #     return self._speed_count or 100
-
-    #TODO: @property
-    # def speed_list(self) -> list:
-    #     """Get the list of available speeds."""
-    #     return self._speed_list
-
-    #TODO: @property
-    # def temperature_unit(self):
-    #     """Return the unit of measurement."""
-    #     return self._unit
-
-    #TODO: @property
-    # def precision(self):
-    #     """Return the precision of the temperature in the system."""
-    #     if self._temp_precision is not None:
-    #         return self._temp_precision
-    #     return super().precision
-
-    #TODO: @property
-    # def target_temperature_step(self):
-    #     """Return the supported step of target temperature."""
-    #     return self.precision
-
-    #TODO: @property
-    # def current_temperature(self):
-    #     """Return the sensor temperature."""
-    #     return self._cur_temp
-
     @property
     def hvac_mode(self):
         """Return current operation (state)."""
@@ -233,39 +199,10 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
             return self._state
         return HVAC_MODE_OFF
 
-    #TODO: @property
-    # def hvac_action(self):
-    #     """Return the current running hvac operation if supported.
-
-    #     Need to be one of CURRENT_HVAC_*.
-    #     """
-    #     if self._hvac_mode == HVAC_MODE_OFF:
-    #         return CURRENT_HVAC_OFF
-    #     if not self._is_device_active:
-    #         return CURRENT_HVAC_IDLE
-    #     if self.ac_mode:
-    #         return CURRENT_HVAC_COOL
-    #     return CURRENT_HVAC_HEAT
-
-    #TODO: @property
-    # def target_temperature(self):
-    #     """Return the temperature we try to reach."""
-    #     return self._target_temp
-
     @property
     def hvac_modes(self):
         """List of available operation modes."""
         return self._hvac_list
-
-    #TODO: @property
-    # def preset_mode(self):
-    #     """Return the current preset mode, e.g., home, away, temp."""
-    #     return PRESET_AWAY if self._is_away else PRESET_NONE
-
-    #TODO: @property
-    # def preset_modes(self):
-    #     """Return a list of available preset modes or PRESET_NONE if _away_temp is undefined."""
-    #     return [PRESET_NONE, PRESET_AWAY] if self._away_temp else PRESET_NONE
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
