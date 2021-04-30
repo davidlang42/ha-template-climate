@@ -193,12 +193,12 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
         self._hvac_modes = hvac_modes
         self._fan_modes = fan_modes
         self._fan_mode_template = fan_mode_template
-        self._temperature_template = temperature_template,
-        self._current_temperature_template = current_temperature_template,
-        self._temperature_step = temperature_step,
-        self._min_temp = min_temp,
-        self._max_temp = max_temp,
-        self._precision = precision,
+        self._temperature_template = temperature_template
+        self._current_temperature_template = current_temperature_template
+        self._temperature_step = temperature_step
+        self._min_temp = min_temp
+        self._max_temp = max_temp
+        self._precision = precision
         self._unique_id = unique_id
 
         self._state = None
