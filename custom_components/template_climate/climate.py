@@ -447,9 +447,11 @@ class TemplateClimate(TemplateEntity, ClimateEntity):
 
     @callback
     def _update_current_temperature(self, current_temperature):
-        if current_temperature <= self.max_temp and current_temperature >= self.min_temp:
-            self._current_temperature = current_temperature
-        elif current_temperature in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
+        try:
+            if self.min_temp <= float(current_temperature) <= self.max_temp:
+                self._current_temperature = current_temperature
+                return
+        if current_temperature in [STATE_UNAVAILABLE, STATE_UNKNOWN]:
             self._current_temperature = None
         else:
             _LOGGER.error(
